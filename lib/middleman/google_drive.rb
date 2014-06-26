@@ -5,7 +5,7 @@ require 'google/api_client/auth/file_storage'
 require 'google/api_client/auth/installed_app'
 
 module Middleman
-  module GoogleDrive# < Middleman::Extension
+  module GoogleDrive
     def self.connect
       credentials = ENV['GOOGLE_DRIVE_OAUTH'] || File.expand_path(
         '~/.google_drive_oauth2.json')
