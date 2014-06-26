@@ -1,4 +1,4 @@
-require 'middleman/google_drive/version'
+require 'middleman-google_drive/version'
 require 'google/api_client'
 require 'google/api_client/client_secrets'
 require 'google/api_client/auth/file_storage'
@@ -79,3 +79,9 @@ module Middleman
     end
   end
 end
+
+require 'middleman-core'
+require 'middleman-google_drive/extension'
+
+::Middleman::Extensions.register(
+  :google_drive, Middleman::GoogleDrive::Extension)
