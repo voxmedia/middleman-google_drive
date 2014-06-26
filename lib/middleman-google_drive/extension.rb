@@ -10,7 +10,7 @@ module Middleman
         super
 
         @client = Middleman::GoogleDrive.connect
-        @session = GoogleDrive.login_with_oauth(
+        @session = ::GoogleDrive.login_with_oauth(
           @client.authorization.access_token)
       end
 
