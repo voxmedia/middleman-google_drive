@@ -1,4 +1,4 @@
-Copyright (c) 2014 Ryan Mark
+Copyright (c) 2014 Vox Media Inc., Ryan Mark, Pablo Mercado
 
 MIT License
 
