@@ -30,8 +30,8 @@ module Middleman
       if key
         puts 'authenticating with key'
         client = Google::APIClient.new(
-          application_name: 'VoxDocs',
-          application_version: '0.0.1',
+          application_name: 'Middleman',
+          application_version: Middleman::GoogleDrive::VERSION,
           authorization: Signet::OAuth2::Client.new(
             token_credential_uri: 'https://accounts.google.com/o/oauth2/token',
             audience: 'https://accounts.google.com/o/oauth2/token',
@@ -50,9 +50,14 @@ module Middleman
       else
         client = Google::APIClient.new(
           application_name: 'Middleman',
-          application_version: '1.0.0'
+          application_version: Middleman::GoogleDrive::VERSION
         )
-        file_storage = Google::APIClient::FileStorage.new(credentials)
+        begin
+          file_storage = Google::APIClient::FileStorage.new(credentials)
+        rescue URI::InvalidURIError
+          File.delete credentials
+          file_storage = Google::APIClient::FileStorage.new(credentials)
+        end
         if file_storage.authorization.nil?
           unless File.exist? client_secrets
             puts 'You need to create a client_secrets.json file and save it to `~/.google_client_secrets.json`. Find instructions here: http://tarbell.readthedocs.org/en/latest/install.html#configure-google-spreadsheet-access-optional'
