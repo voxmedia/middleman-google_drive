@@ -43,16 +43,25 @@ explanation](http://tarbell.readthedocs.org/en/latest/install.html#configure-goo
 run middleman, you will be sent to a Google login prompt in order to
 associate Middleman with your Google account. You should make sure that the
 account that you choose has access to the spreadsheets you want to use in
-Middleman. Once you authenticate with Google, a new file
-`~/.google_drive_oauth2.json` will be created containing an key for
-communicating with Google Drive.
+Middleman.
+
+You need to make sure that the `redirect_urls` setting for the client secrets
+is `urn:ietf:wg:oauth:2.0:oob` and not another URL.
+
+Protip: If somebody in your org has used this extension or something like it,
+chances are that person has already created a client secrets file that can be
+shared with you.
+
+Once you authenticate with Google, a new file `~/.google_drive_oauth2.json`
+will be created containing an key for communicating with Google Drive.
 
 You can override the location of the client secrets and oauth2 JSON files with
 the environment variables `GOOGLE_CLIENT_SECRETS` and `GOOGLE_DRIVE_OAUTH`.
 
 If you plan to run Middleman on a server, you can use Google's server to server
 authentication. This will kick in if you define the environment variables
-`GOOGLE_OAUTH_PERSON`, `GOOGLE_OAUTH_ISSUER` and either `GOOGLE_OAUTH_KEYFILE` or  `GOOGLE_OAUTH_PRIVATE_KEY`.
+`GOOGLE_OAUTH_PERSON`, `GOOGLE_OAUTH_ISSUER` and either `GOOGLE_OAUTH_KEYFILE`
+or `GOOGLE_OAUTH_PRIVATE_KEY`.
 
 ## Contributing
 
