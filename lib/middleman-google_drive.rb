@@ -63,6 +63,7 @@ module Middleman
             puts 'You need to create a client_secrets.json file and save it to `~/.google_client_secrets.json`. Find instructions here: http://tarbell.readthedocs.org/en/latest/install.html#configure-google-spreadsheet-access-optional'
             exit
           end
+          puts 'Please login via your web browser'
           client_secrets = Google::APIClient::ClientSecrets.load(
             client_secrets)
           flow = Google::APIClient::InstalledAppFlow.new(
