@@ -35,6 +35,8 @@ Then you can use the data in your templates:
         My column name: <%= row['My column name'] %>
     <% end %>
 
+## Setup
+
 The first time you use this extension, you will have to configure the authentication
 with Google docs. There are two parts to this. First you will have to register
 a client application with Google and get API keys. Tarbell has a [great
