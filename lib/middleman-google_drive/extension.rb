@@ -6,7 +6,7 @@ module Middleman
     class Extension < Middleman::Extension
       option :load_sheets, {}, 'Hash of google spreadsheets to load. Hash value is the id or slug of the entry to load, hash key is the data attribute to load the sheet data into.'
 
-      def initialize(app, options_hash = {}, &block)
+      def initialize(klass, options_hash = {}, &block)
         super
 
         @client = Middleman::GoogleDrive.connect
