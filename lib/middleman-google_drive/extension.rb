@@ -12,12 +12,12 @@ module Middleman
         @client = Middleman::GoogleDrive.connect
         @session = ::GoogleDrive.login_with_oauth(
           @client.authorization.access_token)
-      end
 
-      def after_configuration
+        app = nil
+        klass.instance_available { app = self }
         options.load_sheets.each do |k, v|
           app.data.store(k, get_sheet(v))
-        end
+        end if app
       end
 
       def get_sheet(key)
