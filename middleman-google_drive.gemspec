@@ -6,6 +6,7 @@ require 'middleman-google_drive/version'
 Gem::Specification.new do |spec|
   spec.name          = 'middleman-google_drive'
   spec.version       = Middleman::GoogleDrive::VERSION
+  spec.platform      = Gem::Platform::RUBY
   spec.authors       = ['Ryan Mark', 'Pablo Mercado']
   spec.email         = ['ryan@mrk.cc', 'pablo@voxmedia.com']
   spec.summary       = 'Pull content from a google spreadsheet to use in your middleman site.'
