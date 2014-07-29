@@ -12,16 +12,15 @@ module Middleman
         @client = Middleman::GoogleDrive.connect
         @drive = @client.discovered_api('drive', 'v2')
 
-        app = klass.inst # this is obviously where you would store the app instance
+        app = klass.inst # where would you store the app instance?
         options.load_sheets.each do |k, v|
           app.data.store(k, get_sheet(v))
         end
       end
 
       def get_sheet(key)
+        # setup the hash that we will eventually return
         data = {}
-        # we're gonna request the spreadsheet in excel format
-        format = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
         # get the file metadata
         list_resp = @client.execute(
@@ -31,8 +30,10 @@ module Middleman
         # die if there's an error
         fail list_resp.error_message if list_resp.error?
 
-        # grab the export url
-        uri = list_resp.data['exportLinks'][format]
+        # Grab the export url. We're gonna request the spreadsheet
+        # in excel format. Because it includes all the worksheets.
+        uri = list_resp.data['exportLinks'][
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
 
         # get the export
         get_resp = @client.execute(uri: uri)
@@ -58,15 +59,26 @@ module Middleman
         # in memory, but alas...)
         xls = Roo::Spreadsheet.open(filename)
         xls.each_with_pagename do |title, sheet|
-          # if the sheet is called microcopy or copy, we assume the first
-          # column contains keys and the second contains values. Ala tarbell.
-          if %w(microcopy copy).include? title.downcase
+          # if the sheet is called microcopy, copy or ends with copy, we assume
+          # the first column contains keys and the second contains values.
+          # Like tarbell.
+          if %w(microcopy copy).include?(title.downcase) ||
+              title.downcase =~ /[ -_]copy$/
             data[title] = {}
             sheet.each do |row|
-              data[title][row[0]] = row[1]
+              # if the key name is reused, create an array with all the entries
+              if data[title].keys.include? row[0]
+                if data[title][row[0]].is_a? Array
+                  data[title][row[0]] << row[1]
+                else
+                  data[title][row[0]] = [data[title][row[0]], row[1]]
+                end
+              else
+                data[title][row[0]] = row[1]
+              end
             end
           else
-            # otherwise parse the sheet into a dict, incorrectly, of course
+            # otherwise parse the sheet into a hash
             sheet.header_line = 2 # this is stupid. theres a bug in Roo.
             data[title] = sheet.parse(headers: true)
           end
