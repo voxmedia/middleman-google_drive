@@ -39,10 +39,7 @@ module Middleman
             issuer: issuer,
             signing_key: key,
             scope: [
-              'https://www.googleapis.com/auth/drive',
-              'https://spreadsheets.google.com/feeds',
-              'https://docs.google.com/feeds/',
-              'https://docs.googleusercontent.com/'
+              'https://www.googleapis.com/auth/drive'
             ]
           )
         )
@@ -70,10 +67,7 @@ module Middleman
             client_id: client_secrets.client_id,
             client_secret: client_secrets.client_secret,
             scope: [
-              'https://www.googleapis.com/auth/drive',
-              'https://spreadsheets.google.com/feeds',
-              'https://docs.google.com/feeds/',
-              'https://docs.googleusercontent.com/'
+              'https://www.googleapis.com/auth/drive'
             ]
           )
           client.authorization = flow.authorize(file_storage)
