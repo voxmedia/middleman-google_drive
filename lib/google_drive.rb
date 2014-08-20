@@ -135,14 +135,14 @@ class GoogleDrive
   end
 
   def copy_doc(file_id, title=nil)
-    drive = client.discovered_api('drive', 'v2')
+    drive = @client.discovered_api('drive', 'v2')
 
     if title.nil?
       copied_file = drive.files.copy.request_schema.new
     else
       copied_file = drive.files.copy.request_schema.new('title' => title)
     end
-    cp_resp = client.execute(
+    cp_resp = @client.execute(
       api_method: drive.files.copy,
       body_object: copied_file,
       parameters: { fileId: file_id, visibility: 'PRIVATE' })
