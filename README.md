@@ -21,19 +21,78 @@ Or install it yourself as:
 
 The extension will get loaded in automatically, you'll just need to activate it.
 
-    activate :google_drive, load_sheets: {
-        mysheet: google_spreadsheet_key,
-        moresheet: another_key
-    }
+```ruby
+activate :google_drive, load_sheets: {
+    mysheet: google_spreadsheet_key,
+    moresheet: another_key
+}
+```
 
 Then you can use the data in your templates:
 
-    <h1>My spreadsheet is called: <%= data.mysheet['title'] %></h1>
-    <% data.mysheet['Sheet1'].each do [row] %>
-        Column one header: <%= row['Column one header'] %>
-        Column two header: <%= row['Column two header'] %>
-        My column name: <%= row['My column name'] %>
-    <% end %>
+```erb
+<h1>My spreadsheet is called: <%= data.mysheet['title'] %></h1>
+<% data.mysheet['Sheet1'].each do [row] %>
+    Column one header: <%= row['Column one header'] %>
+    Column two header: <%= row['Column two header'] %>
+    My column name: <%= row['My column name'] %>
+<% end %>
+```
+
+You can also use a simplified Google Drive interface from inside your project, via the `drive`
+variable.
+
+```ruby
+# get metadata for a document
+doc_info = drive.find('google_document_key')
+
+# get the same spreadsheet data without using the load_sheets param above
+mysheet = drive.prepared_spreadsheet('google_document_key')
+
+# get a fancy spreadsheet object
+spreadsheet = drive.spreadsheet('google_document_key')
+```
+
+The fancy spreadsheet object comes from the [roo gem](https://github.com/Empact/roo). Unfortunately documentation is slim. Here is an example from the `roo` readme:
+
+```ruby
+spreadsheet.sheet('Info').row(1)
+spreadsheet.sheet(0).row(1)
+
+# use this to find the sheet with the most data to parse
+
+spreadsheet.longest_sheet
+
+# this file has multiple worksheets, let's iterate through each of them and process
+
+spreadsheet.each_with_pagename do |name, sheet|
+  p sheet.row(1)
+end
+
+# pull out a hash of exclusive column data (get rid of useless columns and save memory)
+
+spreadsheet.each(:id => 'UPC',:qty => 'ATS') {|hash| arr << hash}
+#=> hash will appear like {:upc=>727880013358, :qty => 12}
+
+# NOTE: .parse does the same as .each, except it returns an array (similar to each vs. map)
+
+# not sure exactly what a column will be named? try a wildcard search with the character *
+# regex characters are allowed ('^price\s')
+# case insensitive
+
+spreadsheet.parse(:id => 'UPC*SKU',:qty => 'ATS*\sATP\s*QTY$')
+
+# if you need to locate the header row and assign the header names themselves,
+# use the :header_search option
+
+spreadsheet.parse(:header_search => ['UPC*SKU','ATS*\sATP\s*QTY$'])
+#=> each element will appear in this fashion:
+#=> {"UPC" => 123456789012, "STYLE" => "987B0", "COLOR" => "blue", "QTY" => 78}
+
+# want to strip out annoying unicode characters and surrounding white space?
+
+spreadsheet.parse(:clean => true)
+```
 
 ## Setup
 
