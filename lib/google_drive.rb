@@ -28,11 +28,12 @@ class GoogleDrive
     end
 
     @_files = {}
+    @_spreadsheets = {}
 
     do_auth
   end
 
-  def get_file(key)
+  def find(key)
     return @_files[key] unless @_files[key].nil?
 
     drive = @client.discovered_api('drive', 'v2')
@@ -45,17 +46,17 @@ class GoogleDrive
     # die if there's an error
     fail GoogleDriveError, resp.error_message if resp.error?
 
-    @_files[key] = resp
+    @_files[key] = resp.data
   end
 
-  def get_sheet(key)
+  def spreadsheet(key)
     require 'roo'
 
-    list_resp = get_file(key)
+    list_resp = find(key)
 
     # Grab the export url. We're gonna request the spreadsheet
     # in excel format. Because it includes all the worksheets.
-    uri = list_resp.data['exportLinks'][
+    uri = list_resp['exportLinks'][
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
 
     # get the export
@@ -71,10 +72,16 @@ class GoogleDrive
     fp.write get_resp.body
     fp.close
 
-    # now open the file with Roo. (Roo can't handle an IO
-    # object, it will only take filenames or urls, coulda done this all
-    # in memory, but alas...)
-    xls = Roo::Spreadsheet.open(filename)
+    # now open the file with Roo
+    ret = Roo::Spreadsheet.open(filename)
+
+    fp.unlink # delete our tempfile
+
+    ret
+  end
+
+  def prepared_spreadsheet(key)
+    xls = spreadsheet(key)
     data = {}
     xls.each_with_pagename do |title, sheet|
       # if the sheet is called microcopy, copy or ends with copy, we assume
@@ -97,15 +104,33 @@ class GoogleDrive
         end
       else
         # otherwise parse the sheet into a hash
-        sheet.header_line = 2 # this is stupid. theres a bug in Roo.
+        sheet.header_line = 2 # a bug in Roo.
         data[title] = sheet.parse(headers: true)
       end
     end
-    fp.unlink # delete our tempfile
     data
   end
 
-  def copy_doc(file_id, title=nil)
+  def doc(key, format = 'html')
+    doc = find(key)
+
+    # Grab the export url.
+    if format.to_s == 'html'
+      uri = doc['exportLinks']['text/html']
+    else
+      uri = doc['exportLinks']['text/plain']
+    end
+
+    # get the export
+    resp = @client.execute(uri: uri)
+
+    # die if there's an error
+    fail GoogleDriveError, resp.error_message if resp.error?
+
+    resp.body
+  end
+
+  def copy(file_id, title = nil)
     drive = @client.discovered_api('drive', 'v2')
 
     if title.nil?
@@ -124,6 +149,7 @@ class GoogleDrive
       return { id: cp_resp.data['id'], url: cp_resp.data['alternateLink'] }
     end
   end
+  alias_method :copy_doc, :copy
 
   def redo_auth
     File.delete @credentials if @key.nil?

@@ -12,15 +12,16 @@ module Middleman
 
         drive = ::GoogleDrive.new
 
-        app = klass.inst # where would you store the app instance?
+        app = klass.inst
+        app.set :drive, drive # so you can access the drive api directly
         options.load_sheets.each do |k, v|
           loop do
             begin
-              app.data.store(k, drive.get_sheet(v))
-              doc = drive.get_file v
+              app.data.store(k, drive.prepared_spreadsheet(v))
+              doc = drive.find(v)
               puts <<-MSG
-== Loaded data.#{k} from Google Doc "#{doc.data['title']}"
-==   #{doc.data['alternateLink']}
+== Loaded data.#{k} from Google Doc "#{doc['title']}"
+==   #{doc['alternateLink']}
               MSG
               break
             rescue ::GoogleDrive::GoogleDriveError => exc
