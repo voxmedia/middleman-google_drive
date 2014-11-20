@@ -14,13 +14,13 @@ module Middleman
 
         app = klass.inst
         app.set :drive, @drive # so you can access the drive api directly
-        if options.load_sheets.is_a? String
-          load_doc(options.load_sheets).each do |name, sheet|
-            app.data.store(name, sheet)
+        if options.load_sheets.is_a? Hash
+          options.load_sheets.each do |name, key|
+            app.data.store(name, load_doc(key.to_s))
           end
         else
-          options.load_sheets.each do |name, key|
-            app.data.store(name, load_doc(key))
+          load_doc(options.load_sheets.to_s).each do |name, sheet|
+            app.data.store(name, sheet)
           end
         end
       end
