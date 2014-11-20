@@ -10,31 +10,31 @@ module Middleman
       def initialize(klass, options_hash = {}, &block)
         super
 
-        drive = ::GoogleDrive.new
+        @drive = ::GoogleDrive.new
 
         app = klass.inst
-        app.set :drive, drive # so you can access the drive api directly
+        app.set :drive, @drive # so you can access the drive api directly
         if options.load_sheets.is_a? String
           load_doc(options.load_sheets).each do |name, sheet|
-            app.data.add(name, sheet)
+            app.data.store(name, sheet)
           end
         else
           options.load_sheets.each do |name, key|
-            app.data.add(name, load_doc(key))
+            app.data.store(name, load_doc(key))
           end
         end
       end
 
       def load_doc(key)
-        data = drive.prepared_spreadsheet(v)
-        doc = drive.find(v)
+        data = @drive.prepared_spreadsheet(key)
+        doc = @drive.find(key)
         puts <<-MSG
-== Loaded data.#{k} from Google Doc "#{doc['title']}"
+== Loaded data from Google Doc "#{doc['title']}"
 ==   #{doc['alternateLink']}
         MSG
         data
       rescue ::GoogleDrive::GoogleDriveError => exc
-        if drive.server?
+        if @drive.server?
           puts "== FAILED to load Google Doc \"#{exc.message}\""
         else
           puts <<-MSG
@@ -48,7 +48,7 @@ Things to check:
 
 Google said "#{exc.message}." It might be a lie.
           MSG
-          drive.clear_auth
+          @drive.clear_auth
         end
       end
 
