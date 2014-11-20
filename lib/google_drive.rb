@@ -151,9 +151,8 @@ class GoogleDrive
   end
   alias_method :copy_doc, :copy
 
-  def redo_auth
+  def clear_auth
     File.delete @credentials if @key.nil?
-    do_auth
   end
 
   def do_auth
