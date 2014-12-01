@@ -19,7 +19,33 @@ Or install it yourself as:
 
 ## Usage
 
-The extension will get loaded in automatically, you'll just need to activate it.
+The extension will get loaded automatically, you just need to activate it.
+
+```ruby
+activate :google_drive
+```
+
+There are two ways to load and use spreadsheets. Most the time you just need a
+single document with multiple worksheets. If you only need a single document...
+
+```ruby
+activate :google_drive, load_sheets: 'mygoogledocumentkey'
+```
+
+You can then use the worksheets in your templates (make sure your worksheets
+have names that only contain alpha-numeric characters; no spaces or strange things).
+
+```erb
+<h1>My spreadsheet is called: <%= data.mysheet['title'] %></h1>
+<% data.Sheet1.each do [row] %>
+    Column one header: <%= row['Column one header'] %>
+    Column two header: <%= row['Column two header'] %>
+    My column name: <%= row['My column name'] %>
+<% end %>
+```
+
+If you would like to load multiple documents from google, you can use a hash when
+activating the extension:
 
 ```ruby
 activate :google_drive, load_sheets: {
@@ -28,7 +54,7 @@ activate :google_drive, load_sheets: {
 }
 ```
 
-Then you can use the data in your templates:
+Then you can use the data from any of the loaded documents in your templates:
 
 ```erb
 <h1>My spreadsheet is called: <%= data.mysheet['title'] %></h1>
@@ -37,12 +63,21 @@ Then you can use the data in your templates:
     Column two header: <%= row['Column two header'] %>
     My column name: <%= row['My column name'] %>
 <% end %>
+<% data.moresheet['Sheet1'].each do [row] %>
+    Column one header: <%= row['Column one header'] %>
+    Column two header: <%= row['Column two header'] %>
+    My column name: <%= row['My column name'] %>
+<% end %>
 ```
 
 You can also use a simplified Google Drive interface from inside your project, via the `drive`
-variable.
+variable. In order to use this functionality, you only have to activate the extension; you do
+not have to provide a google docs key:
 
 ```ruby
+# Activate the extension
+activate :google_drive
+
 # get metadata for a document
 doc_info = drive.find('google_document_key')
 
