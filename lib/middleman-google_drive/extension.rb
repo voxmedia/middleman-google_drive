@@ -50,7 +50,6 @@ Google said "#{exc.message}." It might be a lie.
           @drive.clear_auth
         end
       end
-
     end
   end
 end
