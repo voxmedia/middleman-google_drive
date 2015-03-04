@@ -13,7 +13,6 @@ module Middleman
         @drive = ::GoogleDrive.new
 
         app = klass.inst
-        app.set :drive, @drive # so you can access the drive api directly
         if options.load_sheets.is_a? Hash
           options.load_sheets.each do |name, key|
             app.data.store(name, load_doc(key.to_s))

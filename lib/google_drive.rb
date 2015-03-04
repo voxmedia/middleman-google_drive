@@ -206,12 +206,12 @@ Please login via your web browser. We opened the tab for you...
 
   # Returns true if we're using a private key to autheticate (like on a server).
   def server?
-    ! @key.nil?
+    @key_path.nil?
   end
 
   # Returns true if we're using local oauth2 (like on your computer).
   def local?
-    @key.nil?
+    @private_key.nil?
   end
 
   class GoogleDriveError < StandardError; end
