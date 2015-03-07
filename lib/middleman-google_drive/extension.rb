@@ -1,47 +1,40 @@
 require 'middleman-core'
 require 'google_drive'
+require 'archieml'
 
 module Middleman
   module GoogleDrive
     # Middle man extension that loads the google doc data
     class Extension < Middleman::Extension
       option :load_sheets, {}, 'Key for a google spreadsheet or a hash of google spreadsheets to load. Hash value is the id or slug of the spreadsheet to load, hash key is the data attribute to load the sheet data into.'
-      option :load_docs, {}, 'Key for a google doc or a hash of google docs to load as text. Hash value is the Google key of the spreadsheet to load, hash key is the data attribute to load the sheet data into.'
-      option :load_docs_html, {}, 'Key for a google doc or a hash of google docs to load as HTML. Hash value is the Google key of the spreadsheet to load, hash key is the data attribute to load the sheet data into.'
+      option :load_docs, {}, 'Key for a google doc or a hash of google docs to load as text. Hash value is the Google key of the spreadsheet to load, hash key is the data attribute to load the content into.'
+      option :load_docs_html, {}, 'Key for a google doc or a hash of google docs to load as HTML. Hash value is the Google key of the spreadsheet to load, hash key is the data attribute to load the content into.'
+      option :load_docs_archieml, {}, 'Key for a google doc or a hash of google docs to load and parse as ArchieML. Hash value is the Google key of the spreadsheet to load, hash key is the data attribute to load the content into.'
 
       def initialize(klass, options_hash = {}, &block)
         super
 
         @drive = ::GoogleDrive.new
 
-        app = klass.inst
+        @app = klass.inst
 
-        if options.load_sheets.is_a? Hash
-          options.load_sheets.each do |name, key|
-            app.data.store(name, load_doc(key.to_s, 'spreadsheet'))
+        handle_option(options.load_sheets, 'spreadsheet')
+        handle_option(options.load_docs, 'text')
+        handle_option(options.load_docs_html, 'html')
+        handle_option(options.load_docs_archieml, 'archieml')
+      end
+
+      def handle_option(option, type)
+        if option.is_a? Hash
+          option.each do |name, key|
+            @app.data.store(name, load_doc(key.to_s, type))
+          end
+        elsif type == 'spreadsheet'
+          load_doc(option.to_s, type).each do |name, sheet|
+            @app.data.store(name, sheet)
           end
         else
-          load_doc(options.load_sheets.to_s, 'spreadsheet').each do |name, sheet|
-            app.data.store(name, sheet)
-          end
-        end
-
-        if options.load_docs.is_a? Hash
-          options.load_docs.each do |name, key|
-            app.data.store(name, load_doc(key.to_s, 'text'))
-          end
-        else
-          app.data.store(
-            'doc', load_doc(options.load_docs.to_s, 'text'))
-        end
-
-        if options.load_docs_html.is_a? Hash
-          options.load_docs_html.each do |name, key|
-            app.data.store(name, load_doc(key.to_s, 'html'))
-          end
-        else
-          app.data.store(
-            'doc', load_doc(options.load_docs_html.to_s, 'html'))
+          @app.data.store('doc', load_doc(option.to_s, type))
         end
       end
 
@@ -51,6 +44,8 @@ module Middleman
           data = @drive.prepared_spreadsheet(key)
         when 'html'
           data = @drive.doc(key, 'html')
+        when 'archieml'
+          data = Archieml.load(@drive.doc(key, 'text'))
         else
           data = @drive.doc(key, 'text')
         end

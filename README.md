@@ -84,8 +84,8 @@ Then you can use the data from any of the loaded documents in your templates:
 
 ### Documents
 
-You can load documents similarly to spreadsheets. With documents, you have a couple
-options: plain text or HTML.
+You can load documents similarly to spreadsheets. With documents, you have 
+options: plain text, HTML or [ArchieML](http://archieml.org/).
 
 To load a single document as text:
 
@@ -103,7 +103,9 @@ activate :google_drive, load_docs: {
 }
 ```
 
-In order to load the google doc as HTML, use `load_docs_html` instead of `load_docs`.
+- To load HTML, use `load_docs_html` instead of `load_docs`.
+- For [ArchieML](http://archieml.org/), use `load_docs_archieml`.
+
 The HTML version of a Google doc will be a complete HTML document that includes
 `<html>`, `<head>` and `<body>` tags. You'll probably wanna use the sanitize gem
 to clean things up.
