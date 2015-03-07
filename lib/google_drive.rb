@@ -3,6 +3,7 @@ require 'google/api_client'
 require 'google/api_client/client_secrets'
 require 'google/api_client/auth/file_storage'
 require 'google/api_client/auth/installed_app'
+require 'rubyXL'
 
 class GoogleDrive
   attr_reader :client
@@ -50,8 +51,6 @@ class GoogleDrive
   end
 
   def spreadsheet(key)
-    require 'roo'
-
     list_resp = find(key)
 
     # Grab the export url. We're gonna request the spreadsheet
@@ -72,8 +71,8 @@ class GoogleDrive
     fp.write get_resp.body
     fp.close
 
-    # now open the file with Roo
-    ret = Roo::Spreadsheet.open(filename)
+    # now open the file with spreadsheet
+    ret = RubyXL::Parser.parse(filename)
 
     fp.unlink # delete our tempfile
 
@@ -83,14 +82,15 @@ class GoogleDrive
   def prepared_spreadsheet(key)
     xls = spreadsheet(key)
     data = {}
-    xls.each_with_pagename do |title, sheet|
+    xls.worksheets.each do |sheet|
+      title = sheet.sheet_name
       # if the sheet is called microcopy, copy or ends with copy, we assume
       # the first column contains keys and the second contains values.
       # Like tarbell.
       if %w(microcopy copy).include?(title.downcase) ||
           title.downcase =~ /[ -_]copy$/
         data[title] = {}
-        sheet.each do |row|
+        sheet.extract_data.each do |row|
           # if the key name is reused, create an array with all the entries
           if data[title].keys.include? row[0]
             if data[title][row[0]].is_a? Array
@@ -104,8 +104,7 @@ class GoogleDrive
         end
       else
         # otherwise parse the sheet into a hash
-        sheet.header_line = 2 # a bug in Roo.
-        data[title] = sheet.parse(headers: true)
+        data[title] = sheet.get_table[:table]
       end
     end
     data
