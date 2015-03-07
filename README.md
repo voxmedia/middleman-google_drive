@@ -1,6 +1,6 @@
 # Middleman::GoogleDrive
 
-This is an extension for Middleman that allows you to load data from a google 
+This is an extension for Middleman that allows you to load data from a google
 spreadsheet into your template data.
 
 ## Installation
@@ -24,6 +24,8 @@ The extension will get loaded automatically, you just need to activate it.
 ```ruby
 activate :google_drive
 ```
+
+### Spreadsheet
 
 There are two ways to load and use spreadsheets. Most the time you just need a
 single document with multiple worksheets. If you only need a single document...
@@ -79,6 +81,32 @@ Then you can use the data from any of the loaded documents in your templates:
     My column name: <%= row['My column name'] %>
 <% end %>
 ```
+
+### Documents
+
+You can load documents similarly to spreadsheets. With documents, you have a couple
+options: plain text or HTML.
+
+To load a single document as text:
+
+```ruby
+activate :google_drive, load_docs: 'mygoogledocumentkey'
+```
+
+You can now access the text in `data.doc`. To change the name of the variable name
+or to load multiple documents, use a hash:
+
+```ruby
+activate :google_drive, load_docs: {
+    first_article: 'googledockeyone',
+    second_article: 'googledockeytwo'
+}
+```
+
+In order to load the google doc as HTML, use `load_docs_html` instead of `load_docs`.
+The HTML version of a Google doc will be a complete HTML document that includes
+`<html>`, `<head>` and `<body>` tags. You'll probably wanna use the sanitize gem
+to clean things up.
 
 ## Setup
 
