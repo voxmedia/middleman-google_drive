@@ -34,16 +34,6 @@ single document with multiple worksheets. If you only need a single document...
 activate :google_drive, load_sheets: 'mygoogledocumentkey'
 ```
 
-------
-
-### WARNING!!!!
-
-You can only reliably load old-style google spreadsheets. These spreadsheets have URLs that look like this: `https://docs.google.com/a/spreadsheet/ccc?key=mygoogledocumentkey#gid=4`. If you create a brand new google spreadsheet, it will load without crashing but the worksheet names and data will be all mixed up.
-
-Click this link to create a new old-style google spreadsheet: [g.co/oldsheets](http://g.co/oldsheets)
-
-------
-
 You can then use the worksheets in your templates (make sure your worksheets
 have names that only contain alpha-numeric characters; no spaces or strange things).
 
