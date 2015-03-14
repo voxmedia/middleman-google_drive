@@ -36,7 +36,7 @@ module Middleman
         else
           store_data('doc', load_doc(option.to_s, type))
         end
-      rescue Faraday::ConnectionFailed => exc
+      rescue ::Faraday::ConnectionFailed => exc
         if @drive.server?
           puts "== FAILED to load Google Doc \"#{exc.message}\""
         else
@@ -44,7 +44,7 @@ module Middleman
 == Could not connect to Google Drive. Local data will be used.
 MSG
         end
-      rescue GoogleDrive::GoogleDriveError => exc
+      rescue ::GoogleDrive::GoogleDriveError => exc
         if @drive.server?
           puts "== FAILED to load Google Doc \"#{exc.message}\""
         else

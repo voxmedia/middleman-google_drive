@@ -89,25 +89,47 @@ class GoogleDrive
       # Like tarbell.
       if %w(microcopy copy).include?(title.downcase) ||
           title.downcase =~ /[ -_]copy$/
-        data[title] = {}
-        sheet.extract_data.each do |row|
-          # if the key name is reused, create an array with all the entries
-          if data[title].keys.include? row[0]
-            if data[title][row[0]].is_a? Array
-              data[title][row[0]] << row[1]
-            else
-              data[title][row[0]] = [data[title][row[0]], row[1]]
-            end
-          else
-            data[title][row[0]] = row[1]
-          end
-        end
+        data[title] = load_microcopy(sheet.extract_data)
       else
         # otherwise parse the sheet into a hash
-        data[title] = sheet.get_table[:table]
+        data[title] = load_table(sheet.extract_data)
       end
     end
     data
+  end
+
+  # Take a two-dimensional array from a spreadsheet and create a hash. The first
+  # column is used as the key, and the second column is the value. If the key
+  # occurs more than once, the value becomes an array to hold all the values
+  # associated with the key.
+  def load_microcopy(table)
+    data = {}
+    table.each_with_index do |row, i|
+      next if i == 0 # skip the header row
+      # Did we already create this key?
+      if data.keys.include? row[0]
+        # if the key name is reused, create an array with all the entries
+        if data[row[0]].is_a? Array
+          data[row[0]] << row[1]
+        else
+          data[row[0]] = [data[row[0]], row[1]]
+        end
+      else
+        # add this row's key and value to the hash
+        data[row[0]] = row[1]
+      end
+    end
+    data
+  end
+
+  # Take a two-dimensional array from a spreadsheet and create an array of hashes.
+  def load_table(table)
+    return [] if table.length < 2
+    header = table.shift # Get the header row
+    table.map do |row|
+      # zip headers with current row, convert it to a hash
+      header.zip(row).to_h unless row.nil?
+    end
   end
 
   def doc(key, format = 'html')
