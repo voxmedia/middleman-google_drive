@@ -1,5 +1,7 @@
 # Middleman::GoogleDrive
 
+[![Gem Version](https://badge.fury.io/rb/middleman-google_drive.svg)](http://badge.fury.io/rb/middleman-google_drive)
+
 This is an extension for Middleman that allows you to load data from a google
 spreadsheet into your template data.
 
