@@ -27,14 +27,39 @@ module Middleman
       def handle_option(option, type)
         if option.is_a? Hash
           option.each do |name, key|
-            @app.data.store(name, load_doc(key.to_s, type))
+            store_data(name, load_doc(key.to_s, type))
           end
         elsif type == 'spreadsheet'
           load_doc(option.to_s, type).each do |name, sheet|
-            @app.data.store(name, sheet)
+            store_data(name, sheet)
           end
         else
-          @app.data.store('doc', load_doc(option.to_s, type))
+          store_data('doc', load_doc(option.to_s, type))
+        end
+      rescue Faraday::ConnectionFailed => exc
+        if @drive.server?
+          puts "== FAILED to load Google Doc \"#{exc.message}\""
+        else
+          puts <<-MSG
+== Could not connect to Google Drive. Local data will be used.
+MSG
+        end
+      rescue GoogleDrive::GoogleDriveError => exc
+        if @drive.server?
+          puts "== FAILED to load Google Doc \"#{exc.message}\""
+        else
+          puts <<-MSG
+
+Could not load the Google Doc.
+
+Things to check:
+- Make sure the Google Doc key is correct
+- Make sure you're logging in with the correct account
+- Make sure you have access to the document
+
+Google said "#{exc.message}." It might be a lie.
+          MSG
+          @drive.clear_auth
         end
       end
 
@@ -55,23 +80,14 @@ module Middleman
 ==   #{doc['alternateLink']}
         MSG
         data
-      rescue ::GoogleDrive::GoogleDriveError => exc
-        if @drive.server?
-          puts "== FAILED to load Google Doc \"#{exc.message}\""
-        else
-          puts <<-MSG
+      end
 
-Could not load the Google Doc.
-
-Things to check:
-- Make sure the Google Doc key is correct
-- Make sure you're logging in with the correct account
-- Make sure you have access to the document
-
-Google said "#{exc.message}." It might be a lie.
-          MSG
-          @drive.clear_auth
+      def store_data(key, data)
+        backup_file = File.join(@app.root, @app.data_dir, "#{key}.json")
+        File.open(backup_file, 'w') do |f|
+          f.write(JSON.pretty_generate(data))
         end
+        @app.data.store(key, data)
       end
     end
   end
