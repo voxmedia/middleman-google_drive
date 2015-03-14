@@ -5,8 +5,20 @@ require 'google/api_client/auth/file_storage'
 require 'google/api_client/auth/installed_app'
 require 'rubyXL'
 
+# Convience wrapper for Google Drive
+#
+# You can override the location of the client secrets and oauth2 JSON files with
+# the environment variables `GOOGLE_CLIENT_SECRETS` and `GOOGLE_DRIVE_OAUTH`.
+#
+# If you plan to run Middleman on a server, you can use Google's server to server
+# authentication. This will kick in if you define the environment variables
+# `GOOGLE_OAUTH_PERSON`, `GOOGLE_OAUTH_ISSUER` and either `GOOGLE_OAUTH_KEYFILE`
+# or `GOOGLE_OAUTH_PRIVATE_KEY`.
 class GoogleDrive
+  # Google API Client object
   attr_reader :client
+
+  # Constructor. Loads all params from envionment variables.
   def initialize
     @credentials = ENV['GOOGLE_DRIVE_OAUTH'] || File.expand_path(
       '~/.google_drive_oauth2.json')
@@ -34,24 +46,36 @@ class GoogleDrive
     do_auth
   end
 
-  def find(key)
-    return @_files[key] unless @_files[key].nil?
+  # Find a Google Drive file
+  # Takes the key of a Google Drive file and returns a hash of meta data. The returned hash is
+  # formatted as a
+  # {Google Drive resource}[https://developers.google.com/drive/v2/reference/files#resource].
+  #
+  # @param file_id [String] file id
+  # @return [Hash] file meta data
+  def find(file_id)
+    return @_files[file_id] unless @_files[file_id].nil?
 
     drive = @client.discovered_api('drive', 'v2')
 
     # get the file metadata
     resp = @client.execute(
       api_method: drive.files.get,
-      parameters: { fileId: key })
+      parameters: { fileId: file_id })
 
     # die if there's an error
     fail GoogleDriveError, resp.error_message if resp.error?
 
-    @_files[key] = resp.data
+    @_files[file_id] = resp.data
   end
 
-  def spreadsheet(key)
-    list_resp = find(key)
+  # Download and parse a spreadsheet
+  # Returns a {RubyXL Workbook}[http://www.rubydoc.info/gems/rubyXL/3.3.7/RubyXL/Workbook]
+  #
+  # @param file_id [String] file id
+  # @return [RubyXL::Workbook] Excel workbook
+  def spreadsheet(file_id)
+    list_resp = find(file_id)
 
     # Grab the export url. We're gonna request the spreadsheet
     # in excel format. Because it includes all the worksheets.
@@ -79,8 +103,13 @@ class GoogleDrive
     ret
   end
 
-  def prepared_spreadsheet(key)
-    xls = spreadsheet(key)
+  # Download and parse a spreadsheet
+  # Reduces the spreadsheet to a no-frills hash, suitable for serializing and passing around.
+  #
+  # @param file_id [String] file id
+  # @return [Hash] spreadsheet contents
+  def prepared_spreadsheet(file_id)
+    xls = spreadsheet(file_id)
     data = {}
     xls.worksheets.each do |sheet|
       title = sheet.sheet_name
@@ -102,6 +131,9 @@ class GoogleDrive
   # column is used as the key, and the second column is the value. If the key
   # occurs more than once, the value becomes an array to hold all the values
   # associated with the key.
+  #
+  # @param table [Array<Array>] 2d array of cell values
+  # @return [Hash] spreadsheet contents
   def load_microcopy(table)
     data = {}
     table.each_with_index do |row, i|
@@ -123,6 +155,9 @@ class GoogleDrive
   end
 
   # Take a two-dimensional array from a spreadsheet and create an array of hashes.
+  #
+  # @param table [Array<Array>] 2d array of cell values
+  # @return [Array<Hash>] spreadsheet contents
   def load_table(table)
     return [] if table.length < 2
     header = table.shift # Get the header row
@@ -132,11 +167,16 @@ class GoogleDrive
     end
   end
 
-  def doc(key, format = 'html')
-    doc = find(key)
+  # Retrieve the content of a Google Doc
+  #
+  # @param file_id [String] file id
+  # @param format [:html, :text] format to download from google
+  # @return [String] text or html
+  def doc(file_id, format = :html)
+    doc = find(file_id)
 
     # Grab the export url.
-    if format.to_s == 'html'
+    if format.to_sym == :html
       uri = doc['exportLinks']['text/html']
     else
       uri = doc['exportLinks']['text/plain']
@@ -151,6 +191,11 @@ class GoogleDrive
     resp.body
   end
 
+  # Make a copy of a Google Drive file
+  #
+  # @param file_id [String] file id
+  # @param title [String] title for the newly created file
+  # @return [Hash] hash containing the id/key and url of the new file
   def copy(file_id, title = nil)
     drive = @client.discovered_api('drive', 'v2')
 
@@ -172,10 +217,12 @@ class GoogleDrive
   end
   alias_method :copy_doc, :copy
 
+  # Delete cached credentials
   def clear_auth
     File.delete @credentials if @key.nil?
   end
 
+  # Authenticate with Google and create the @client object
   def do_auth
     if local?
       @client = Google::APIClient.new(
@@ -226,11 +273,13 @@ Please login via your web browser. We opened the tab for you...
   end
 
   # Returns true if we're using a private key to autheticate (like on a server).
+  # @return [Boolean]
   def server?
     !local?
   end
 
   # Returns true if we're using local oauth2 (like on your computer).
+  # @return [Boolean]
   def local?
     @key.nil?
   end
