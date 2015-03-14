@@ -1,0 +1,30 @@
+inherit_from: .rubocop_todo.yml
+AllCops:
+  Include:
+    - '**/Rakefile'
+    - '**/Capfile'
+  Exclude:
+    - 'db/migrate/**/*'
+    - 'vendor/**/*'
+  RunRailsCops: true
+
+Style/HashSyntax:
+  EnforcedStyle: hash_rockets
+
+Style/LineLength:
+  Max: 100
+
+Style/NumericLiterals:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/SignalException:
+  EnforcedStyle: only_raise
+
+Style/ClassLength:
+  Enabled: false
+
+Style/MethodLength:
+  Enabled: false
