@@ -30,14 +30,14 @@ class TestGoogleDrive < MiniTest::Test
   def test_export_to_file
     filename = @drive.export_to_file(@doc_file_id, :html)
     assert_equal '.html', File.extname(filename)
-    assert File.exist?(filename)
+    assert File.exist?(filename), "Export file is missing #{filename}"
     assert_not_nil File.read(filename) =~ /^<html>/
     File.unlink(filename)
 
     [@new_sheet_file_id, @old_sheet_file_id].each do |file_id|
       filename = @drive.export_to_file(file_id, :xlsx)
       assert_equal '.xlsx', File.extname(filename)
-      assert File.exist?(filename)
+      assert File.exist?(filename), "Export file is missing #{filename}"
       File.unlink(filename)
     end
   end
@@ -45,9 +45,9 @@ class TestGoogleDrive < MiniTest::Test
   def test_prepare_spreadsheet
     [@old_sheet_file_id, @new_sheet_file_id].each do |file_id|
       #filename = "/tmp/google_drive_#{file_id}.xlsx"
-      filename = @drive.export_to_file(file_id, :xlsx, filename)
+      filename = @drive.export_to_file(file_id, :xlsx)
       assert_equal '.xlsx', File.extname(filename)
-      assert File.exist?(filename)
+      assert File.exist?(filename), "Export file is missing #{filename}"
       data = @drive.prepare_spreadsheet(filename)
       assert_has_key data, 'microcopy'
       assert_has_key data['microcopy'], 'help'

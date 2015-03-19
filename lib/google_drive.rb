@@ -114,14 +114,13 @@ class GoogleDrive
     if filename.nil?
       # get a temporary file. The export is binary, so open the tempfile in
       # write binary mode
-      Tempfile.create(
-          ['googledoc', ".#{type}"],
-          binmode: mime_for(type.to_s).binary?) do |fp|
-        filename = fp.path
-        fp.write contents
-      end
+      fp = Tempfile.create(
+        ['googledoc', ".#{type}"], binmode: mime_for(type.to_s).binary?)
+      filename = fp.path
+      fp.write(contents)
+      fp.close
     else
-      open(filename, 'wb') { |fp| fp.write contents }
+      open(filename, 'wb') { |f| f.write(contents) }
     end
     filename
   end
