@@ -18,6 +18,8 @@ module Middleman
 
         @app = klass.inst
 
+        Dir.mkdir(File.join(@app.root, 'google_drive_cache'))
+
         handle_option(options.load_sheets, :xlsx)
         handle_option(options.load_docs, :txt)
         handle_option(options.load_docs_html, :html)
@@ -111,7 +113,7 @@ Things to check:
       end
 
       def data_path(basename)
-        File.join(@app.root, @app.data_dir, basename)
+        File.join(@app.root, 'google_drive_cache', basename)
       end
 
       def store_data(key, data)
