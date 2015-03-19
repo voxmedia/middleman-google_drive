@@ -1,4 +1,5 @@
 require 'middleman-google_drive/version'
+require 'mime/types'
 require 'google/api_client'
 require 'google/api_client/client_secrets'
 require 'google/api_client/auth/file_storage'
@@ -46,6 +47,8 @@ class GoogleDrive
     do_auth
   end
 
+  ## Friendly Google Drive access
+
   # Find a Google Drive file
   # Takes the key of a Google Drive file and returns a hash of meta data. The returned hash is
   # formatted as a
@@ -69,18 +72,24 @@ class GoogleDrive
     @_files[file_id] = resp.data
   end
 
-  # Download and parse a spreadsheet
-  # Returns a {RubyXL Workbook}[http://www.rubydoc.info/gems/rubyXL/3.3.7/RubyXL/Workbook]
+  # Export a file
+  # Returns the file contents
   #
   # @param file_id [String] file id
-  # @return [RubyXL::Workbook] Excel workbook
-  def spreadsheet(file_id)
+  # @param type [:excel, :text, :html] export type
+  # @return [String] file contents
+  def export(file_id, type)
     list_resp = find(file_id)
 
-    # Grab the export url. We're gonna request the spreadsheet
-    # in excel format. Because it includes all the worksheets.
-    uri = list_resp['exportLinks'][
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    # decide which mimetype we want
+    mime = mime_for(type).content_type
+
+    # Grab the export url.
+    if list_resp['exportLinks'] && list_resp['exportLinks'][mime]
+      uri = list_resp['exportLinks'][mime]
+    else
+      raise "Google doesn't support exporting file id #{file_id} to #{type}"
+    end
 
     # get the export
     get_resp = @client.execute(uri: uri)
@@ -88,28 +97,79 @@ class GoogleDrive
     # die if there's an error
     fail GoogleDriveError, get_resp.error_message if get_resp.error?
 
-    # get a temporary file. The export is binary, so open the tempfile in
-    # write binary mode
-    fp = Tempfile.new(['gdoc', '.xlsx'], binmode: true)
-    filename = fp.path
-    fp.write get_resp.body
-    fp.close
-
-    # now open the file with spreadsheet
-    ret = RubyXL::Parser.parse(filename)
-
-    fp.unlink # delete our tempfile
-
-    ret
+    # contents
+    get_resp.body
   end
 
-  # Download and parse a spreadsheet
-  # Reduces the spreadsheet to a no-frills hash, suitable for serializing and passing around.
+  # Export a file and save to disk
+  # Returns the local path to the file
   #
   # @param file_id [String] file id
+  # @param type [:excel, :text, :html] export type
+  # @param filename [String] where to save the spreadsheet
+  # @return [String] path to the excel file
+  def export_to_file(file_id, type, filename = nil)
+    contents = export(file_id, type)
+
+    if filename.nil?
+      # get a temporary file. The export is binary, so open the tempfile in
+      # write binary mode
+      Tempfile.create(
+          ['googledoc', ".#{type}"],
+          binmode: mime_for(type.to_s).binary?) do |fp|
+        filename = fp.path
+        fp.write contents
+      end
+    else
+      open(filename, 'wb') { |fp| fp.write contents }
+    end
+    filename
+  end
+
+  # Make a copy of a Google Drive file
+  #
+  # @param file_id [String] file id
+  # @param title [String] title for the newly created file
+  # @return [Hash] hash containing the id/key and url of the new file
+  def copy(file_id, title = nil, visibility = :private)
+    drive = @client.discovered_api('drive', 'v2')
+
+    if title.nil?
+      copied_file = drive.files.copy.request_schema.new
+    else
+      copied_file = drive.files.copy.request_schema.new('title' => title)
+    end
+    cp_resp = @client.execute(
+      api_method: drive.files.copy,
+      body_object: copied_file,
+      parameters: { fileId: file_id, visibility: visibility.to_s.upcase })
+
+    if cp_resp.error?
+      fail CreateError, cp_resp.error_message
+    else
+      return { id: cp_resp.data['id'], url: cp_resp.data['alternateLink'] }
+    end
+  end
+  alias_method :copy_doc, :copy
+
+  # Get the mime type from a file extension
+  #
+  # @param extension [String] file ext
+  # @return [String, nil] mime type for the file
+  def mime_for(extension)
+    MIME::Types.of(extension.to_s).first
+  end
+
+  ## Spreadsheet utilities
+
+  # Parse a spreadsheet
+  # Reduces the spreadsheet to a no-frills hash, suitable for serializing and passing around.
+  #
+  # @param filename [String] path to xls file
   # @return [Hash] spreadsheet contents
-  def prepared_spreadsheet(file_id)
-    xls = spreadsheet(file_id)
+  def prepare_spreadsheet(filename)
+    # open the file with RubyXL
+    xls = RubyXL::Parser.parse(filename)
     data = {}
     xls.worksheets.each do |sheet|
       title = sheet.sheet_name
@@ -124,7 +184,7 @@ class GoogleDrive
         data[title] = load_table(sheet.extract_data)
       end
     end
-    data
+    return data
   end
 
   # Take a two-dimensional array from a spreadsheet and create a hash. The first
@@ -167,55 +227,19 @@ class GoogleDrive
     end
   end
 
-  # Retrieve the content of a Google Doc
-  #
-  # @param file_id [String] file id
-  # @param format [:html, :text] format to download from google
-  # @return [String] text or html
-  def doc(file_id, format = :html)
-    doc = find(file_id)
+  ## Authentication
 
-    # Grab the export url.
-    if format.to_sym == :html
-      uri = doc['exportLinks']['text/html']
-    else
-      uri = doc['exportLinks']['text/plain']
-    end
-
-    # get the export
-    resp = @client.execute(uri: uri)
-
-    # die if there's an error
-    fail GoogleDriveError, resp.error_message if resp.error?
-
-    resp.body
+  # Returns true if we're using a private key to autheticate (like on a server).
+  # @return [Boolean]
+  def server?
+    !local?
   end
 
-  # Make a copy of a Google Drive file
-  #
-  # @param file_id [String] file id
-  # @param title [String] title for the newly created file
-  # @return [Hash] hash containing the id/key and url of the new file
-  def copy(file_id, title = nil)
-    drive = @client.discovered_api('drive', 'v2')
-
-    if title.nil?
-      copied_file = drive.files.copy.request_schema.new
-    else
-      copied_file = drive.files.copy.request_schema.new('title' => title)
-    end
-    cp_resp = @client.execute(
-      api_method: drive.files.copy,
-      body_object: copied_file,
-      parameters: { fileId: file_id, visibility: 'PRIVATE' })
-
-    if cp_resp.error?
-      fail CreateError, cp_resp.error_message
-    else
-      return { id: cp_resp.data['id'], url: cp_resp.data['alternateLink'] }
-    end
+  # Returns true if we're using local oauth2 (like on your computer).
+  # @return [Boolean]
+  def local?
+    @key.nil?
   end
-  alias_method :copy_doc, :copy
 
   # Delete cached credentials
   def clear_auth
@@ -270,18 +294,6 @@ Please login via your web browser. We opened the tab for you...
       @client.authorization.fetch_access_token!
     end
     nil
-  end
-
-  # Returns true if we're using a private key to autheticate (like on a server).
-  # @return [Boolean]
-  def server?
-    !local?
-  end
-
-  # Returns true if we're using local oauth2 (like on your computer).
-  # @return [Boolean]
-  def local?
-    @key.nil?
   end
 
   class GoogleDriveError < StandardError; end

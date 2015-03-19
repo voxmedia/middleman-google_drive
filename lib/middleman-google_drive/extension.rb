@@ -18,10 +18,10 @@ module Middleman
 
         @app = klass.inst
 
-        handle_option(options.load_sheets, 'spreadsheet')
-        handle_option(options.load_docs, 'text')
-        handle_option(options.load_docs_html, 'html')
-        handle_option(options.load_docs_archieml, 'archieml')
+        handle_option(options.load_sheets, :xlsx)
+        handle_option(options.load_docs, :txt)
+        handle_option(options.load_docs_html, :html)
+        handle_option(options.load_docs_archieml, :archieml)
       end
 
       def handle_option(option, type)
@@ -29,25 +29,54 @@ module Middleman
           option.each do |name, key|
             store_data(name, load_doc(key.to_s, type))
           end
-        elsif type == 'spreadsheet'
+        elsif type == :xlsx
           load_doc(option.to_s, type).each do |name, sheet|
             store_data(name, sheet)
           end
         else
           store_data('doc', load_doc(option.to_s, type))
         end
-      rescue ::Faraday::ConnectionFailed => exc
-        if @drive.server?
-          puts "== FAILED to load Google Doc \"#{exc.message}\""
+      end
+
+      def load_doc(key, type)
+        doc = @drive.find(key)
+        puts <<-MSG
+== Loading data from Google Doc "#{doc['title']}"
+==   #{doc['alternateLink']}
+        MSG
+        filename = data_path("#{key}.#{type}")
+
+        case type.to_sym
+        when :xlsx
+          if @drive.server?
+            filename = @drive.export_to_file(key, :xlsx)
+          else
+            @drive.export_to_file(key, :xlsx, filename)
+          end
+          ret = @drive.prepare_spreadsheet(filename)
+          File.unlink(filename) if @drive.server?
+        when :archieml
+          if @drive.server?
+            ret = Archieml.load(@drive.export(key, :txt))
+          else
+            @drive.export_to_file(key, :txt, filename)
+            ret = Archieml.load(File.read(filename))
+          end
         else
-          puts <<-MSG
-== Could not connect to Google Drive. Local data will be used.
-MSG
+          if @drive.server?
+            ret = @drive.export(key, type)
+          else
+            @drive.export_to_file(key, type, filename)
+            ret = File.read(filename)
+          end
         end
+        return ret
+      rescue ::Faraday::ConnectionFailed => exc
+        puts "== FAILED to load Google Doc \"#{exc.message}\""
+        return load_local_copy(filename)
       rescue ::GoogleDrive::GoogleDriveError => exc
-        if @drive.server?
-          puts "== FAILED to load Google Doc \"#{exc.message}\""
-        else
+        puts "== FAILED to load Google Doc \"#{exc.message}\""
+        unless @drive.server?
           puts <<-MSG
 
 Could not load the Google Doc.
@@ -57,36 +86,35 @@ Things to check:
 - Make sure you're logging in with the correct account
 - Make sure you have access to the document
 
-Google said "#{exc.message}." It might be a lie.
           MSG
           @drive.clear_auth
         end
+        return load_local_copy(filename)
       end
 
-      def load_doc(key, type)
-        case type.to_s
-        when 'spreadsheet'
-          data = @drive.prepared_spreadsheet(key)
-        when 'html'
-          data = @drive.doc(key, 'html')
-        when 'archieml'
-          data = Archieml.load(@drive.doc(key, 'text'))
+      def load_local_copy(filename)
+        if File.exist? filename
+          puts '== Loading Google Doc from local cache'
+          type = File.extname(filename).gsub('.','').to_sym
+          case type
+          when :xlsx
+            return @drive.prepare_spreadsheet(filename)
+          when :archieml
+            return Archieml.load(File.read(filename))
+          else
+            return File.read(filename)
+          end
         else
-          data = @drive.doc(key, 'text')
+          puts '== No local copy of Google Doc'
+          return nil
         end
-        doc = @drive.find(key)
-        puts <<-MSG
-== Loaded data from Google Doc "#{doc['title']}"
-==   #{doc['alternateLink']}
-        MSG
-        data
+      end
+
+      def data_path(basename)
+        File.join(@app.root, @app.data_dir, basename)
       end
 
       def store_data(key, data)
-        backup_file = File.join(@app.root, @app.data_dir, "#{key}.json")
-        File.open(backup_file, 'w') do |f|
-          f.write(JSON.pretty_generate(data))
-        end
         @app.data.store(key, data)
       end
     end

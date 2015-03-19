@@ -1,40 +1,58 @@
 require 'minitest/autorun'
+require 'fileutils'
 require 'google_drive'
 
 # Test the client lib!
-class TestChorusApiClient < MiniTest::Test
+class TestGoogleDrive < MiniTest::Test
   def setup
     @drive = ::GoogleDrive.new
+    @old_sheet_file_id = '0AiOYF21HkoowdEZ4Ukkyc09nb2czQUxUYldidTB4Q1E'
+    @new_sheet_file_id = '1vIICbbfHJ8lYSthiDWTNypZulrMResi9zPRjv4ePJJU'
+    @doc_file_id = '1lH-Nr_8UBOkvk8OdcdFoDez3OFIJxkawGVkwlMB-BjQ'
   end
 
-  def test_old_find
-    file = @drive.find '0AiOYF21HkoowdEZ4Ukkyc09nb2czQUxUYldidTB4Q1E'
+  def test_find
+    file = @drive.find @old_sheet_file_id
+    assert_equal file['title'], 'Example Middleman Google Drive worksheet'
+
+    file = @drive.find @new_sheet_file_id
     assert_equal file['title'], 'Example Middleman Google Drive worksheet'
   end
 
-  def test_old_prepared_spreadsheet
-    file = @drive.prepared_spreadsheet '0AiOYF21HkoowdEZ4Ukkyc09nb2czQUxUYldidTB4Q1E'
-    assert_has_key file, 'microcopy'
-    assert_has_key file['microcopy'], 'help'
+  def test_export
+    content = @drive.export @doc_file_id, :txt
+    assert_nil content =~ /^<html>/
+
+    content = @drive.export @doc_file_id, :html
+    assert_not_nil content =~ /^<html>/
   end
 
-  def test_new_find
-    file = @drive.find '1vIICbbfHJ8lYSthiDWTNypZulrMResi9zPRjv4ePJJU'
-    assert_equal file['title'], 'Example Middleman Google Drive worksheet'
+  def test_export_to_file
+    filename = @drive.export_to_file(@doc_file_id, :html)
+    assert_equal '.html', File.extname(filename)
+    assert File.exist?(filename)
+    assert_not_nil File.read(filename) =~ /^<html>/
+    File.unlink(filename)
+
+    [@new_sheet_file_id, @old_sheet_file_id].each do |file_id|
+      filename = @drive.export_to_file(file_id, :xlsx)
+      assert_equal '.xlsx', File.extname(filename)
+      assert File.exist?(filename)
+      File.unlink(filename)
+    end
   end
 
-  def test_new_prepared_spreadsheet
-    file = @drive.prepared_spreadsheet '1vIICbbfHJ8lYSthiDWTNypZulrMResi9zPRjv4ePJJU'
-    assert_has_key file, 'microcopy'
-    assert_has_key file['microcopy'], 'help'
-  end
-
-  def test_new_doc
-    file = @drive.doc '1lH-Nr_8UBOkvk8OdcdFoDez3OFIJxkawGVkwlMB-BjQ'
-    assert_not_nil file =~ /^<html>/
-
-    file = @drive.doc '1lH-Nr_8UBOkvk8OdcdFoDez3OFIJxkawGVkwlMB-BjQ', 'text'
-    assert_nil file =~ /^<html>/
+  def test_prepare_spreadsheet
+    [@old_sheet_file_id, @new_sheet_file_id].each do |file_id|
+      #filename = "/tmp/google_drive_#{file_id}.xlsx"
+      filename = @drive.export_to_file(file_id, :xlsx, filename)
+      assert_equal '.xlsx', File.extname(filename)
+      assert File.exist?(filename)
+      data = @drive.prepare_spreadsheet(filename)
+      assert_has_key data, 'microcopy'
+      assert_has_key data['microcopy'], 'help'
+      File.unlink(filename)
+    end
   end
 
   def test_copy_file
