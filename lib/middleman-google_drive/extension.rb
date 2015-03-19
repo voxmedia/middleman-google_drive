@@ -18,7 +18,9 @@ module Middleman
 
         @app = klass.inst
 
-        Dir.mkdir(File.join(@app.root, 'google_drive_cache'))
+        @cache_dir = File.join(@app.root, 'google_drive_cache')
+
+        Dir.mkdir(@cache_dir) unless Dir.exist?(@cache_dir)
 
         handle_option(options.load_sheets, :xlsx)
         handle_option(options.load_docs, :txt)
@@ -113,7 +115,7 @@ Things to check:
       end
 
       def data_path(basename)
-        File.join(@app.root, 'google_drive_cache', basename)
+        File.join(@cache_dir, basename)
       end
 
       def store_data(key, data)
