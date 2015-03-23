@@ -197,6 +197,7 @@ class GoogleDrive
     data = {}
     table.each_with_index do |row, i|
       next if i == 0 # skip the header row
+      next if row.nil? || row.length < 2 || row[0].nil? # skip empty, incomplete or blank rows
       # Did we already create this key?
       if data.keys.include? row[0]
         # if the key name is reused, create an array with all the entries
