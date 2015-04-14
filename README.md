@@ -102,6 +102,16 @@ The HTML version of a Google doc will be a complete HTML document that includes
 `<html>`, `<head>` and `<body>` tags. You'll probably wanna use the sanitize gem
 to clean things up.
 
+You can then access your document in your templates thusly:
+
+```erb
+<article>
+<%=data.first_article %>
+</article>
+```
+
+If you are loading ArchieML, the data will come in the form of a hash. Both text and html come as strings.
+
 ## Setup
 
 The first time you use this extension, you will have to configure the authentication
