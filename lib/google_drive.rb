@@ -181,6 +181,7 @@ class GoogleDrive
       else
         # otherwise parse the sheet into a hash
         data[title] = load_table(sheet.extract_data)
+        puts "Rows in #{title}: #{data[title].length}"
       end
     end
     return data
@@ -221,6 +222,8 @@ class GoogleDrive
   def load_table(table)
     return [] if table.length < 2
     header = table.shift # Get the header row
+    # remove blank rows
+    table.reject! { |row| row.map { |r| r.to_s }.reduce(:+).strip.empty? }
     table.map do |row|
       # zip headers with current row, convert it to a hash
       header.zip(row).to_h unless row.nil?
