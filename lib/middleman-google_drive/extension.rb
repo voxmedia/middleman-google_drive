@@ -43,12 +43,12 @@ module Middleman
       end
 
       def load_doc(key, type)
+        filename = data_path("#{key}.#{type}")
         doc = @drive.find(key)
         puts <<-MSG
 == Loading data from Google Doc "#{doc['title']}"
 ==   #{doc['alternateLink']}
         MSG
-        filename = data_path("#{key}.#{type}")
 
         case type.to_sym
         when :xlsx
