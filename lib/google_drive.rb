@@ -223,7 +223,7 @@ class GoogleDrive
     return [] if table.length < 2
     header = table.shift # Get the header row
     # remove blank rows
-    table.reject! { |row| row.map { |r| r.to_s }.reduce(:+).strip.empty? }
+    table.reject! { |row| row.nil? || row.map { |r| r.to_s }.reduce(:+).strip.empty? }
     table.map do |row|
       # zip headers with current row, convert it to a hash
       header.zip(row).to_h unless row.nil?
