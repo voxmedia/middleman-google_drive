@@ -14,18 +14,23 @@ module Middleman
       def initialize(klass, options_hash = {}, &block)
         super
 
-        @drive = ::GoogleDrive.new
+        begin
+          @drive = ::GoogleDrive.new
 
-        @app = klass.inst
+          @app = klass.inst
 
-        @cache_dir = File.join(@app.root, 'google_drive_cache')
+          @cache_dir = File.join(@app.root, 'google_drive_cache')
 
-        Dir.mkdir(@cache_dir) unless Dir.exist?(@cache_dir)
+          Dir.mkdir(@cache_dir) unless Dir.exist?(@cache_dir)
 
-        handle_option(options.load_sheets, :xlsx)
-        handle_option(options.load_docs, :txt)
-        handle_option(options.load_docs_html, :html)
-        handle_option(options.load_docs_archieml, :archieml)
+          handle_option(options.load_sheets, :xlsx)
+          handle_option(options.load_docs, :txt)
+          handle_option(options.load_docs_html, :html)
+          handle_option(options.load_docs_archieml, :archieml)
+        rescue Faraday::ConnectionFailed => ex
+          puts "== Can't connect to Google (#{ex.message})"
+        end
+
       end
 
       def handle_option(option, type)
